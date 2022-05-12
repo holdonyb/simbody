@@ -1563,7 +1563,7 @@ static void redrawDisplay() {
         filename << ".png";
         writeImage(filename.str());
     }
-
+    writeImage("current_frame.png");
     // Render the scene and extract the screen text.
     // ------------------------------------------------------------
     std::vector<string> screenText;
