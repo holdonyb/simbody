@@ -1560,9 +1560,10 @@ static void redrawDisplay() {
         filename << movieDir;
         filename << "/Frame";
         filename << setw(4) << setfill('0') << movieFrame++;
-        filename << ".png";
+        filename << "_test.png";
         writeImage(filename.str());
     }
+    std::cout<<"Wrinting an image"<<endl;
     writeImage("current_frame.png");
     // Render the scene and extract the screen text.
     // ------------------------------------------------------------
