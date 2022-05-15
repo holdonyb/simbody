@@ -1568,13 +1568,13 @@ static void redrawDisplay() {
         filename << ".png";
         writeImage(filename.str());
     }
-
+    
     stringstream autofilename;
     autofilename << autoMovieDir;
     autofilename << "/Frame";
     autofilename << setw(4) << setfill('0') << autoMovieFrame++;
     autofilename << ".png";
-    
+    std::cout<<"Save current frame to "<<autoMovieDir<<endl;
     writeImage(autofilename.str());
     // Render the scene and extract the screen text.
     // ------------------------------------------------------------
