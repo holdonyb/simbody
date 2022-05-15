@@ -26,7 +26,7 @@
 #include "simbody/internal/Visualizer_InputListener.h"
 #include "../src/VisualizerProtocol.h"
 #include "lodepng.h"
-
+#include <unistd.h>
 #include <cstdlib>
 #include <cmath>
 #include <string>
@@ -40,6 +40,7 @@
 #include <cstring>
 #include <thread>
 #include <condition_variable>
+#include <experimental/filesystem>
 #include <sys/stat.h>
 #ifdef _WIN32
     #include <direct.h>
@@ -124,6 +125,7 @@ static void shutdown();
 
 using namespace SimTK;
 using namespace std;
+using namespace std::experimental::filesystem;
 
 // This is the transform giving the pose of the camera's local frame in the
 // model's ground frame. The camera local frame has Y as the up direction,
@@ -434,9 +436,12 @@ static string simbodyVersionStr;
 
 // These are used when saving a movie.
 static bool savingMovie = false, saveNextFrameToMovie = false;
+static bool savingAutoMovie = false, saveNextFrameToAutoMovie = false;
 static bool canSaveImages = false; // is this OpenGL version up to the job?
 static string movieDir;
 static int movieFrame;
+static string autoMovieDir;
+static int autoMovieFrame;
 static ParallelWorkQueue imageSaverQueue(5);
 static void writeImage(const string& filename);
 
@@ -1560,11 +1565,17 @@ static void redrawDisplay() {
         filename << movieDir;
         filename << "/Frame";
         filename << setw(4) << setfill('0') << movieFrame++;
-        filename << "_test.png";
+        filename << ".png";
         writeImage(filename.str());
     }
-    std::cout<<"Wrinting an image"<<endl;
-    writeImage("current_frame.png");
+
+    stringstream autofilename;
+    autofilename << autoMovieDir;
+    autofilename << "/Frame";
+    autofilename << setw(4) << setfill('0') << autoMovieFrame++;
+    autofilename << ".png";
+    
+    writeImage(autofilename.str());
     // Render the scene and extract the screen text.
     // ------------------------------------------------------------
     std::vector<string> screenText;
@@ -2032,6 +2043,36 @@ static void saveMovie() {
         movieFrame = 1;
         savingMovie = true;
         setOverlayMessage("Capturing frames in:\n"+dirname);
+    }
+}
+
+static void remove_dir(string directory){
+    string cmd = "rm -rf " + directory;
+    system(cmd.c_str());
+}
+
+static void saveAutoMovie() {
+    struct stat statInfo;
+    int counter = 0;
+    string dirname;
+    stringstream namestream;
+    namestream << "current" << "_";
+    namestream << "frame";
+    dirname = namestream.str();
+#ifdef _WIN32
+    int result = mkdir(dirname.c_str());
+#else
+    if (stat(dirname.c_str(), &statInfo) == 0)
+        remove_dir(dirname.c_str());
+    int result = mkdir(dirname.c_str(), 0777);
+#endif
+    if (result == -1)
+        setOverlayMessage("Failed to create directory:\n"+dirname);
+    else {
+        autoMovieDir = dirname;
+        autoMovieFrame = 1;
+        savingAutoMovie = true;
+        // setOverlayMessage("Capturing frames in:\n"+dirname);
     }
 }
 
@@ -2900,6 +2941,7 @@ int main(int argc, char** argv) {
 
     // Avoid hangs on Mac & Linux; posts orphan redisplays on all platforms.
     setKeepAlive(true);
+    saveAutoMovie();
 
     // Enter the main loop. If there is nothing else to do we'll check if
     // someone was hoping for a redisplay and issue one.
